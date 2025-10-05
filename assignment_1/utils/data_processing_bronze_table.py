@@ -15,7 +15,7 @@ from pyspark.sql.functions import col
 from pyspark.sql.types import StringType, IntegerType, FloatType, DateType
 
 
-def process_bronze_table_append(snapshot_date_str, csv_file_path, partition_str, bronze_lms_directory, spark):
+def process_bronze_table_append(snapshot_date_str, csv_file_path, partition_str, bronze_directory, spark):
     # prepare arguments
     snapshot_date = datetime.strptime(snapshot_date_str, "%Y-%m-%d")
     
@@ -25,14 +25,14 @@ def process_bronze_table_append(snapshot_date_str, csv_file_path, partition_str,
 
     # save bronze table to datamart - IRL connect to database to write
     partition_name = partition_str + snapshot_date_str.replace('-','_') + '.csv'
-    filepath = bronze_lms_directory + partition_name
+    filepath = bronze_directory + partition_name
     df.toPandas().to_csv(filepath, index=False)
     print('saved to:', filepath)
 
     return df
 
 
-def process_bronze_table_overwrite(snapshot_date_str, csv_file_path, partition_str, bronze_lms_directory, spark):
+def process_bronze_table_overwrite(snapshot_date_str, csv_file_path, partition_str, bronze_directory, spark):
     # prepare arguments
     snapshot_date = datetime.strptime(snapshot_date_str, "%Y-%m-%d")
     
@@ -42,7 +42,7 @@ def process_bronze_table_overwrite(snapshot_date_str, csv_file_path, partition_s
 
     # save bronze table to datamart - IRL connect to database to write
     partition_name = partition_str + snapshot_date_str.replace('-','_') + '.csv'
-    filepath = bronze_lms_directory + partition_name
+    filepath = bronze_directory + partition_name
     df.toPandas().to_csv(filepath, index=False)
     print('saved to:', filepath)
 

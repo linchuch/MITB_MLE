@@ -15,7 +15,16 @@ from pyspark.sql.functions import col
 from pyspark.sql.types import StringType, IntegerType, FloatType, DateType
 
 
-def process_silver_table(snapshot_date_str, bronze_lms_directory, silver_loan_daily_directory, spark):
+REGISTRY = {}
+
+def register(table_name: str):
+    def deco(f):
+        REGISTRY[table_name] = f
+        return f
+    return deco
+
+@register("features_attributes")
+def process_silver_table_features_attributes(snapshot_date_str, bronze_lms_directory, silver_loan_daily_directory, spark):
     # prepare arguments
     snapshot_date = datetime.strptime(snapshot_date_str, "%Y-%m-%d")
     
@@ -26,9 +35,8 @@ def process_silver_table(snapshot_date_str, bronze_lms_directory, silver_loan_da
     print('loaded from:', filepath, 'row count:', df.count())
 
     # clean data: fix data errors
-    df = df.withColumn("Name_clean", F.regexp_replace(F.col("Name"), r'"[^"]*$', '')).withColumn("Name_clean", F.regexp_replace(F.col("Name_clean"), '"', '')).withColumn("Name_clean", F.trim(F.col("Name_clean")))
-    df = df.withColumn("Age_clean", F.regexp_replace(F.col("Age"), "_", ""))
-    df = df.withColumn("Age_capped", F.least(F.lit(100), F.greatest(F.lit(0), F.col("Age_clean"))))
+    df = df.withColumn("Name", F.regexp_replace(F.col("Name"), r'"[^"]*$', '')).withColumn("Name", F.regexp_replace(F.col("Name"), '"', '')).withColumn("Name", F.trim(F.col("Name")))
+    df = df.withColumn("Age", F.regexp_replace(F.col("Age"), "_", "")).withColumn("Age", F.col("Age").cast("int")).withColumn("Age", F.least(F.lit(100), F.greatest(F.lit(0), F.col("Age"))))
     df = df.replace("_______", "Unknown", subset=["Occupation"])
     df = df.replace("#F%$D@*&8","Unknown", subset=["SSN"])
     
@@ -37,10 +45,7 @@ def process_silver_table(snapshot_date_str, bronze_lms_directory, silver_loan_da
     column_type_map = {
         "Customer_ID": StringType(),
         "Name": StringType(),
-        "Name_clean": StringType(),
         "Age": StringType(),
-        "Age_clean": IntegerType(),
-        "Age_capped": IntegerType(),
         "SSN": StringType(),
         "Occupation": StringType(),
         "snapshot_date": DateType(),
